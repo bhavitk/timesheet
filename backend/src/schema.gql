@@ -1,0 +1,116 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input CreateProjectInput {
+  name: String!
+}
+
+input CreateTimeEntryInput {
+  date: String!
+  description: String!
+  entryType: String! = "work"
+  hours: Float!
+}
+
+input CreateUserInput {
+  email: String!
+  isAdmin: Boolean! = false
+  name: String
+  password: String!
+  projectId: String
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Mutation {
+  createProject(input: CreateProjectInput!): ProjectObject!
+  createTimeEntry(input: CreateTimeEntryInput!): TimeEntryObject!
+  createUser(input: CreateUserInput!): UserObject!
+  deleteTimeEntry(id: String!): TimeEntryObject!
+  deleteUser(id: String!): UserObject
+  register(input: RegisterInput!): String!
+  updateProject(input: UpdateProjectInput!): ProjectObject
+  updateTimeEntry(input: UpdateTimeEntryInput!): TimeEntryObject!
+  updateUser(input: UpdateUserInput!): UserObject
+}
+
+type ProjectObject {
+  createdAt: DateTime!
+  id: ID!
+  name: String!
+  updatedAt: DateTime!
+}
+
+type Query {
+  getAllUsers: [UserObject!]!
+  getAllUsersTimeEntriesReport(month: Float!, year: Float!): [UserTimeEntriesReportObject!]!
+  getCurrentUser: UserObject!
+  getTimeEntries(month: Float!, year: Float!): [TimeEntryObject!]!
+  getUserTimeEntriesAdmin(month: Float!, userId: String!, year: Float!): [TimeEntryObject!]!
+  hello: String!
+  listProjects: [ProjectObject!]!
+  listUsers: [UserObject!]!
+}
+
+input RegisterInput {
+  email: String!
+  name: String
+  password: String!
+}
+
+type TimeEntryObject {
+  createdAt: DateTime!
+  date: String!
+  description: String!
+  entryType: String!
+  hours: Float!
+  id: ID!
+  updatedAt: DateTime!
+  user: UserObject!
+  userId: String!
+}
+
+input UpdateProjectInput {
+  id: String!
+  name: String
+}
+
+input UpdateTimeEntryInput {
+  date: String
+  description: String
+  entryType: String
+  hours: Float
+  id: String!
+}
+
+input UpdateUserInput {
+  email: String
+  id: String!
+  isAdmin: Boolean
+  name: String
+  password: String
+  projectId: String
+}
+
+type UserObject {
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+  isAdmin: Boolean!
+  name: String
+  project: ProjectObject
+  projectId: String
+  updatedAt: DateTime!
+}
+
+type UserTimeEntriesReportObject {
+  entries: [TimeEntryObject!]!
+  userEmail: String!
+  userFirstName: String
+  userId: String!
+  userLastName: String
+}

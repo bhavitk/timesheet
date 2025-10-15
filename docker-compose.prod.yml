@@ -1,0 +1,59 @@
+version: '3.8'
+
+# Production overrides for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  db:
+    environment:
+      POSTGRES_DB: ${DB_NAME:-timesheet}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}  # Must be set in environment
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Optional: Add backup volume
+      - ./backups:/backups
+    # Remove port exposure for security (only accessible from app container)
+    ports: []
+
+  app:
+    environment:
+      # Database Configuration (from environment variables)
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-timesheet}
+      
+      # Backend Configuration
+      JWT_SECRET: ${JWT_SECRET}  # Must be set in environment
+      NODE_ENV: production
+      BACKEND_PORT: 8181
+      
+      # Frontend Configuration
+      PORT: 3000
+      NEXT_PUBLIC_GRAPHQL_URL: ${FRONTEND_API_URL:-http://localhost:8181/graphql}
+    
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:
+    driver: local
