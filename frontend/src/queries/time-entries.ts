@@ -82,8 +82,16 @@ export const GET_USER_TIME_ENTRIES_ADMIN = gql`
 `;
 
 export const GET_ALL_USERS_TIME_ENTRIES_REPORT = gql`
-  query GetAllUsersTimeEntriesReport($month: Float!, $year: Float!) {
-    getAllUsersTimeEntriesReport(month: $month, year: $year) {
+  query GetAllUsersTimeEntriesReport(
+    $month: Float!
+    $year: Float!
+    $projectId: String
+  ) {
+    getAllUsersTimeEntriesReport(
+      month: $month
+      year: $year
+      projectId: $projectId
+    ) {
       userId
       userEmail
       userFirstName

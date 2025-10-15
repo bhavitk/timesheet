@@ -89,8 +89,13 @@ export class TimeEntriesResolver {
   async getAllUsersTimeEntriesReport(
     @Args('year') year: number,
     @Args('month') month: number,
-    @Context() context: any,
+    @Args('projectId', { nullable: true }) projectId?: string,
+    @Context() context?: any,
   ) {
-    return this.timeEntriesService.getAllUsersTimeEntriesReport(year, month);
+    return this.timeEntriesService.getAllUsersTimeEntriesReport(
+      year,
+      month,
+      projectId,
+    );
   }
 }

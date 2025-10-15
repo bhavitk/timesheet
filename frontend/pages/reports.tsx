@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@apollo/client";
 import Layout from "../components/Layout";
 import { GET_ALL_USERS_TIME_ENTRIES_REPORT } from "../src/queries/time-entries";
+import { LIST_PROJECTS } from "../src/queries/projects";
 import {
   UserTimeEntriesReport,
   MonthlyReportStats,
@@ -10,9 +11,17 @@ import {
 export default function Reports() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null
+  );
   const [filterType, setFilterType] = useState<"all" | "missing" | "complete">(
     "all"
   );
+
+  // Dropdown states
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
+  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
 
   const { data, loading, error, refetch } = useQuery(
     GET_ALL_USERS_TIME_ENTRIES_REPORT,
@@ -20,9 +29,15 @@ export default function Reports() {
       variables: {
         month: selectedMonth,
         year: selectedYear,
+        projectId: selectedProjectId,
       },
     }
   );
+
+  // Fetch projects list
+  const { data: projectsData } = useQuery(LIST_PROJECTS, {
+    errorPolicy: "all",
+  });
 
   // Calculate working days in the selected month (exclude weekends)
   const getWorkingDaysInMonth = (month: number, year: number): number => {
@@ -116,7 +131,24 @@ export default function Reports() {
 
   useEffect(() => {
     handleMonthYearChange();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, selectedProjectId]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".dropdown-container")) {
+        setIsMonthDropdownOpen(false);
+        setIsYearDropdownOpen(false);
+        setIsProjectDropdownOpen(false);
+      }
+    };
+
+    if (isMonthDropdownOpen || isYearDropdownOpen || isProjectDropdownOpen) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [isMonthDropdownOpen, isYearDropdownOpen, isProjectDropdownOpen]);
 
   const reports: UserTimeEntriesReport[] =
     data?.getAllUsersTimeEntriesReport || [];
@@ -126,6 +158,9 @@ export default function Reports() {
   const [fullExportStatus, setFullExportStatus] = useState<
     "idle" | "loading" | "done"
   >("idle");
+
+  const projects = projectsData?.listProjects || [];
+  const selectedProject = projects.find((p: any) => p.id === selectedProjectId);
 
   const escapeCsvField = (s?: string | number | null) => {
     if (s === null || s === undefined) return '""';
@@ -170,11 +205,14 @@ export default function Reports() {
 
     try {
       const token = localStorage.getItem("token");
+      const projectParam = selectedProjectId
+        ? `&projectId=${selectedProjectId}`
+        : "";
       const response = await fetch(
         `${
           process.env.NEXT_PUBLIC_GRAPHQL_URL?.replace("/graphql", "") ||
           "http://localhost:8181"
-        }/time-entries/export-csv?month=${month}&year=${year}`,
+        }/time-entries/export-csv?month=${month}&year=${year}${projectParam}`,
         {
           headers: {
             Authorization: token ? `Bearer ${token}` : "",
@@ -333,53 +371,187 @@ export default function Reports() {
             </div>
           </div>
 
-          {/* Month/Year Selector */}
-          <div className="glass-card rounded-2xl p-6 mb-8 shadow-lg">
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-              <div className="flex gap-4">
-                <div>
-                  <label
-                    htmlFor="month"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Month
-                  </label>
-                  <select
-                    id="month"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  >
-                    {months.map((month, index) => (
-                      <option key={month} value={index + 1}>
-                        {month}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor="year"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Year
-                  </label>
-                  <select
-                    id="year"
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          {/* Month/Year/Project Selector */}
+          <div className="glass-card rounded-2xl p-6 mb-8 shadow-lg relative z-50">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Filter by:
+                </label>
               </div>
-              <div className="text-sm text-gray-600 mt-2">
+
+              {/* Month Dropdown */}
+              <div className="relative z-[70] dropdown-container">
+                <button
+                  onClick={() => {
+                    setIsMonthDropdownOpen(!isMonthDropdownOpen);
+                    setIsYearDropdownOpen(false);
+                    setIsProjectDropdownOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                >
+                  <span className="text-sm font-medium text-gray-700">
+                    {months[selectedMonth - 1]}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-gray-500 transform transition-transform ${
+                      isMonthDropdownOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {isMonthDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-[100] max-h-60 overflow-y-auto">
+                    {months.map((month, index) => (
+                      <button
+                        key={month}
+                        onClick={() => {
+                          setSelectedMonth(index + 1);
+                          setIsMonthDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-100 first:rounded-t-xl last:rounded-b-xl transition-colors ${
+                          selectedMonth === index + 1
+                            ? "bg-blue-50 text-blue-700 font-medium"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {month}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Year Dropdown */}
+              <div className="relative z-[70] dropdown-container">
+                <button
+                  onClick={() => {
+                    setIsYearDropdownOpen(!isYearDropdownOpen);
+                    setIsMonthDropdownOpen(false);
+                    setIsProjectDropdownOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                >
+                  <span className="text-sm font-medium text-gray-700">
+                    {selectedYear}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-gray-500 transform transition-transform ${
+                      isYearDropdownOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {isYearDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-28 bg-white border border-gray-200 rounded-xl shadow-xl z-[100]">
+                    {years.map((year) => (
+                      <button
+                        key={year}
+                        onClick={() => {
+                          setSelectedYear(year);
+                          setIsYearDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-100 first:rounded-t-xl last:rounded-b-xl transition-colors ${
+                          selectedYear === year
+                            ? "bg-blue-50 text-blue-700 font-medium"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Project Dropdown */}
+              <div className="relative z-[70] dropdown-container">
+                <button
+                  onClick={() => {
+                    setIsProjectDropdownOpen(!isProjectDropdownOpen);
+                    setIsMonthDropdownOpen(false);
+                    setIsYearDropdownOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                >
+                  <span className="text-sm font-medium text-gray-700">
+                    {selectedProject ? selectedProject.name : "All Projects"}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-gray-500 transform transition-transform ${
+                      isProjectDropdownOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {isProjectDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-[100] max-h-60 overflow-y-auto">
+                    <button
+                      onClick={() => {
+                        setSelectedProjectId(null);
+                        setIsProjectDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-100 first:rounded-t-xl transition-colors ${
+                        selectedProjectId === null
+                          ? "bg-blue-50 text-blue-700 font-medium"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      All Projects
+                    </button>
+                    {projects.map((project: any) => (
+                      <button
+                        key={project.id}
+                        onClick={() => {
+                          setSelectedProjectId(project.id);
+                          setIsProjectDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-100 last:rounded-b-xl transition-colors ${
+                          selectedProjectId === project.id
+                            ? "bg-blue-50 text-blue-700 font-medium"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {project.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="text-sm text-gray-600">
                 Showing report for {months[selectedMonth - 1]} {selectedYear}
+                {selectedProject && ` • ${selectedProject.name}`}
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, In } from 'typeorm';
 import { TimeEntry } from './time-entry.entity';
 import { User } from '../users/user.entity';
 
@@ -163,7 +163,11 @@ export class TimeEntriesService {
     });
   }
 
-  async getAllUsersTimeEntriesReport(year: number, month: number) {
+  async getAllUsersTimeEntriesReport(
+    year: number,
+    month: number,
+    projectId?: string,
+  ) {
     const date = new Date(year, month, 0);
     const lastDay = date.getDate();
 
@@ -172,17 +176,31 @@ export class TimeEntriesService {
       lastDay,
     ).padStart(2, '0')}`;
 
-    // Get all users (excluding deleted ones)
+    // Get all users (excluding deleted ones), optionally filtered by project
+    const userWhere: any = { isDeleted: false };
+    if (projectId) {
+      userWhere.projectId = projectId;
+    }
+
     const users = await this.usersRepository.find({
-      where: { isDeleted: false },
+      where: userWhere,
       order: { email: 'ASC' },
     });
 
-    // Get all time entries for the month
+    // Get user IDs for filtering time entries
+    const userIds = users.map((user) => user.id);
+
+    // Get time entries for the month, filtered by the selected users if project filter is applied
+    const timeEntriesWhere: any = {
+      date: Between(start, end),
+    };
+
+    if (projectId && userIds.length > 0) {
+      timeEntriesWhere.userId = In(userIds);
+    }
+
     const timeEntries = await this.timeEntriesRepository.find({
-      where: {
-        date: Between(start, end),
-      },
+      where: timeEntriesWhere,
       relations: ['user'],
       order: { date: 'ASC' },
     });
@@ -209,7 +227,11 @@ export class TimeEntriesService {
     }));
   }
 
-  async generateFullReportCsv(year: number, month: number): Promise<string> {
+  async generateFullReportCsv(
+    year: number,
+    month: number,
+    projectId?: string,
+  ): Promise<string> {
     const date = new Date(year, month, 0);
     const lastDay = date.getDate();
 
@@ -218,18 +240,33 @@ export class TimeEntriesService {
       lastDay,
     ).padStart(2, '0')}`;
 
-    // Get all users (excluding deleted ones) with project information
+    // Get all users (excluding deleted ones) with project information, optionally filtered by project
+    const userWhere: any = { isDeleted: false };
+    if (projectId) {
+      userWhere.projectId = projectId;
+    }
+
     const users = await this.usersRepository.find({
-      where: { isDeleted: false },
+      where: userWhere,
       relations: ['project'],
       order: { email: 'ASC' },
     });
 
-    // Get all time entries for the month with user relations
+    // Get user IDs for filtering time entries
+    const userIds = users.map((user) => user.id);
+
+    // Get time entries for the month, filtered by the selected users
+    const timeEntriesWhere: any = {
+      date: Between(start, end),
+    };
+
+    // If we have specific users (project filter applied), filter entries by those users
+    if (projectId && userIds.length > 0) {
+      timeEntriesWhere.userId = In(userIds);
+    }
+
     const timeEntries = await this.timeEntriesRepository.find({
-      where: {
-        date: Between(start, end),
-      },
+      where: timeEntriesWhere,
       relations: ['user'],
       order: { userId: 'ASC', date: 'ASC' },
     });

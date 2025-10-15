@@ -827,39 +827,77 @@ export default function TimeSheet() {
                   <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Entry Type */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
                         Entry Type
                       </label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center">
+                      <div className="flex gap-3">
+                        {/* Work Radio Button */}
+                        <label className="relative flex-1 cursor-pointer">
                           <input
                             type="radio"
                             value="work"
                             checked={entryType === "work"}
                             onChange={() => handleEntryTypeChange("work")}
-                            className="mr-2 text-blue-600"
+                            className="sr-only peer"
                           />
-                          <span className="text-sm text-gray-700">Work</span>
+                          <div className="flex items-center justify-center px-4 py-3 bg-white border-2 border-gray-200 rounded-xl transition-all duration-200 peer-checked:border-blue-500 peer-checked:bg-gradient-to-r peer-checked:from-blue-50 peer-checked:to-purple-50 hover:border-blue-300 hover:shadow-md">
+                            <div className="flex items-center gap-2">
+                              <div className="relative w-5 h-5 rounded-full border-2 border-gray-300 peer-checked:border-blue-500 transition-all duration-200 flex items-center justify-center peer-checked:bg-gradient-to-br peer-checked:from-blue-500 peer-checked:to-purple-600">
+                                {entryType === "work" && (
+                                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                                )}
+                              </div>
+                              <span className="text-sm font-medium text-gray-700 peer-checked:text-blue-700">
+                                Work
+                              </span>
+                            </div>
+                          </div>
                         </label>
-                        <label className="flex items-center">
+
+                        {/* Holiday Radio Button */}
+                        <label className="relative flex-1 cursor-pointer">
                           <input
                             type="radio"
                             value="holiday"
                             checked={entryType === "holiday"}
                             onChange={() => handleEntryTypeChange("holiday")}
-                            className="mr-2 text-blue-600"
+                            className="sr-only peer"
                           />
-                          <span className="text-sm text-gray-700">Holiday</span>
+                          <div className="flex items-center justify-center px-4 py-3 bg-white border-2 border-gray-200 rounded-xl transition-all duration-200 peer-checked:border-green-500 peer-checked:bg-gradient-to-r peer-checked:from-green-50 peer-checked:to-emerald-50 hover:border-green-300 hover:shadow-md">
+                            <div className="flex items-center gap-2">
+                              <div className="relative w-5 h-5 rounded-full border-2 border-gray-300 peer-checked:border-green-500 transition-all duration-200 flex items-center justify-center peer-checked:bg-gradient-to-br peer-checked:from-green-500 peer-checked:to-emerald-600">
+                                {entryType === "holiday" && (
+                                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                                )}
+                              </div>
+                              <span className="text-sm font-medium text-gray-700 peer-checked:text-green-700">
+                                Holiday
+                              </span>
+                            </div>
+                          </div>
                         </label>
-                        <label className="flex items-center">
+
+                        {/* Leave Radio Button */}
+                        <label className="relative flex-1 cursor-pointer">
                           <input
                             type="radio"
                             value="leave"
                             checked={entryType === "leave"}
                             onChange={() => handleEntryTypeChange("leave")}
-                            className="mr-2 text-blue-600"
+                            className="sr-only peer"
                           />
-                          <span className="text-sm text-gray-700">Leave</span>
+                          <div className="flex items-center justify-center px-4 py-3 bg-white border-2 border-gray-200 rounded-xl transition-all duration-200 peer-checked:border-orange-500 peer-checked:bg-gradient-to-r peer-checked:from-orange-50 peer-checked:to-amber-50 hover:border-orange-300 hover:shadow-md">
+                            <div className="flex items-center gap-2">
+                              <div className="relative w-5 h-5 rounded-full border-2 border-gray-300 peer-checked:border-orange-500 transition-all duration-200 flex items-center justify-center peer-checked:bg-gradient-to-br peer-checked:from-orange-500 peer-checked:to-amber-600">
+                                {entryType === "leave" && (
+                                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                                )}
+                              </div>
+                              <span className="text-sm font-medium text-gray-700 peer-checked:text-orange-700">
+                                Leave
+                              </span>
+                            </div>
+                          </div>
                         </label>
                       </div>
                     </div>

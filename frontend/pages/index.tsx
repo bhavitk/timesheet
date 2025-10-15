@@ -11,6 +11,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
+  // Real-time validation states
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  // Simple email regex for basic validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   useEffect(() => {
     try {
       const t = localStorage.getItem("token");
@@ -27,10 +35,29 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError("Email and password are required.");
+
+    // Mark fields as touched on submit
+    setEmailTouched(true);
+    setPasswordTouched(true);
+
+    // Validate fields
+    let hasError = false;
+    if (!email.trim()) {
+      setEmailError("Email is required");
+      hasError = true;
+    } else if (!emailRegex.test(email.trim())) {
+      setEmailError("Please enter a valid email address");
+      hasError = true;
+    }
+    if (!password) {
+      setPasswordError("Password is required");
+      hasError = true;
+    }
+
+    if (hasError) {
       return;
     }
+
     setError("");
     setIsLoading(true);
 
@@ -111,11 +138,39 @@ export default function LoginPage() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setEmail(val);
+                setEmailTouched(true);
+                // Real-time validation: clear error if field is no longer empty
+                if (!val.trim()) {
+                  setEmailError("Email is required");
+                } else if (!emailRegex.test(val.trim())) {
+                  setEmailError("Please enter a valid email address");
+                } else {
+                  setEmailError("");
+                }
+              }}
+              onBlur={() => {
+                setEmailTouched(true);
+                if (!email.trim()) {
+                  setEmailError("Email is required");
+                } else if (!emailRegex.test(email.trim())) {
+                  setEmailError("Please enter a valid email address");
+                }
+              }}
               placeholder="you@example.com"
-              required
-              className="input-field"
+              className={`input-field ${
+                emailTouched && emailError
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                  : ""
+              }`}
             />
+            {emailTouched && emailError && (
+              <p className="text-red-600 text-sm mt-1 animate-fade-in">
+                {emailError}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -129,11 +184,35 @@ export default function LoginPage() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setPassword(val);
+                setPasswordTouched(true);
+                // Real-time validation: clear error if field is no longer empty
+                if (val) {
+                  setPasswordError("");
+                } else {
+                  setPasswordError("Password is required");
+                }
+              }}
+              onBlur={() => {
+                setPasswordTouched(true);
+                if (!password) {
+                  setPasswordError("Password is required");
+                }
+              }}
               placeholder="Enter your password"
-              required
-              className="input-field"
+              className={`input-field ${
+                passwordTouched && passwordError
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                  : ""
+              }`}
             />
+            {passwordTouched && passwordError && (
+              <p className="text-red-600 text-sm mt-1 animate-fade-in">
+                {passwordError}
+              </p>
+            )}
           </div>
 
           {error && (

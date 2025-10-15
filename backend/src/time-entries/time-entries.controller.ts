@@ -16,6 +16,7 @@ export class TimeEntriesController {
   async exportCsv(
     @Query('month') month: string,
     @Query('year') year: string,
+    @Query('projectId') projectId: string,
     @Res() res: Response,
   ) {
     const monthNum = parseInt(month);
@@ -29,6 +30,7 @@ export class TimeEntriesController {
       const csvData = await this.timeEntriesService.generateFullReportCsv(
         yearNum,
         monthNum,
+        projectId || undefined,
       );
 
       const filename = `timesheet-report-${monthNum}-${yearNum}.csv`;

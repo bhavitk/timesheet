@@ -47,7 +47,7 @@ type ProjectObject {
 
 type Query {
   getAllUsers: [UserObject!]!
-  getAllUsersTimeEntriesReport(month: Float!, year: Float!): [UserTimeEntriesReportObject!]!
+  getAllUsersTimeEntriesReport(month: Float!, projectId: String, year: Float!): [UserTimeEntriesReportObject!]!
   getCurrentUser: UserObject!
   getTimeEntries(month: Float!, year: Float!): [TimeEntryObject!]!
   getUserTimeEntriesAdmin(month: Float!, userId: String!, year: Float!): [TimeEntryObject!]!
