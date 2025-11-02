@@ -4,81 +4,71 @@ FROM node:18-alpine AS backend-builder
 
 WORKDIR /app/backend
 
-# Copy backend package files
+# Copy backend package files and install full deps for build
 COPY backend/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy backend source code
 COPY backend/ ./
 
-# Build backend
+# Build backend (TypeScript compile)
 RUN npm run build
+
+# Remove devDependencies to keep node_modules small
+RUN npm prune --production
 
 # Stage 2: Build Frontend
 FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Copy frontend package files
+# Copy frontend package files and install deps for build
 COPY frontend/package*.json ./
 RUN npm ci
 
 # Copy frontend source code
 COPY frontend/ ./
 
-# Build frontend for production
+# Allow passing build-time NEXT_PUBLIC_GRAPHQL_URL without relying on a repo .env (which is usually ignored)
+ARG NEXT_PUBLIC_GRAPHQL_URL=/graphql
+# Create a small .env file for the frontend build using the build-arg
+RUN printf "NEXT_PUBLIC_GRAPHQL_URL=%s\n" "$NEXT_PUBLIC_GRAPHQL_URL" > .env
+
+# Build frontend for production (Next.js)
 RUN npm run build
+
+# Remove devDependencies to keep node_modules small
+RUN npm prune --production
 
 # Stage 3: Production Runtime
 FROM node:18-alpine AS production
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init and curl for healthchecks
+RUN apk add --no-cache dumb-init curl
 
-# Create app user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+# Install nginx for reverse proxy (will expose single external port 3000 and proxy /graphql to backend)
+RUN apk add --no-cache nginx
+
+# Nginx main configuration: copy from project file so it's easier to edit and review
+COPY nginx.conf /etc/nginx/nginx.conf
 
 WORKDIR /app
 
 # Copy backend built application
-COPY --from=backend-builder --chown=nextjs:nodejs /app/backend/dist ./backend/dist
-COPY --from=backend-builder --chown=nextjs:nodejs /app/backend/node_modules ./backend/node_modules
-COPY --from=backend-builder --chown=nextjs:nodejs /app/backend/package*.json ./backend/
+COPY --from=backend-builder /app/backend/dist ./backend/dist
+COPY --from=backend-builder /app/backend/node_modules ./backend/node_modules
+COPY --from=backend-builder /app/backend/package*.json ./backend/
 
-# Copy frontend built application
-COPY --from=frontend-builder --chown=nextjs:nodejs /app/frontend/.next/standalone ./frontend/
-COPY --from=frontend-builder --chown=nextjs:nodejs /app/frontend/.next/static ./frontend/.next/static
-COPY --from=frontend-builder --chown=nextjs:nodejs /app/frontend/public ./frontend/public
+# Copy frontend built application (Next standalone) and production node_modules
+# Copy the entire .next directory (not just static) so server chunks required at runtime are present.
+COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
+COPY --from=frontend-builder /app/frontend/.next/standalone ./frontend/
+COPY --from=frontend-builder /app/frontend/public ./frontend/public
+COPY --from=frontend-builder /app/frontend/node_modules ./frontend/node_modules
 
-# Create startup script
-COPY --chown=nextjs:nodejs <<EOF /app/start.sh
-#!/bin/sh
-set -e
-
-# Start backend in background
-echo "Starting backend..."
-cd /app/backend
-node dist/main.js &
-BACKEND_PID=\$!
-
-# Wait a moment for backend to start
-sleep 5
-
-# Start frontend
-echo "Starting frontend..."
-cd /app/frontend
-node server.js &
-FRONTEND_PID=\$!
-
-# Wait for both processes
-wait \$BACKEND_PID \$FRONTEND_PID
-EOF
-
+# Copy startup script from repository and make executable
+COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
-
-# Switch to non-root user
-USER nextjs
 
 # Expose ports
 EXPOSE 3000 8181
@@ -90,14 +80,13 @@ ENV BACKEND_PORT=8181
 ENV DB_HOST=localhost
 ENV DB_PORT=5432
 ENV DB_USER=postgres
-ENV DB_PASSWORD=password
 ENV DB_NAME=timesheet
-ENV JWT_SECRET=your-secret-key-change-in-production
-ENV NEXT_PUBLIC_GRAPHQL_URL=http://localhost:8181/graphql
+# Note: Do NOT hardcode sensitive secrets here. Pass DB_PASSWORD and JWT_SECRET at runtime via --env or --env-file.
+ENV NEXT_PUBLIC_GRAPHQL_URL=/graphql
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+  CMD curl -fsS --max-time 2 http://localhost:3000/api/health || exit 1
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
