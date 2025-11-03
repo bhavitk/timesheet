@@ -2,6 +2,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input ChangePasswordInput {
+  currentPassword: String!
+  newPassword: String!
+}
+
 input CreateProjectInput {
   name: String!
 }
@@ -27,6 +32,7 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 scalar DateTime
 
 type Mutation {
+  changePassword(input: ChangePasswordInput!): UserObject!
   createProject(input: CreateProjectInput!): ProjectObject!
   createTimeEntry(input: CreateTimeEntryInput!): TimeEntryObject!
   createUser(input: CreateUserInput!): UserObject!

@@ -80,4 +80,31 @@ export class UsersService {
       order: { email: 'ASC' },
     });
   }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId, isDeleted: false },
+    });
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      throw new Error('Current password is incorrect');
+    }
+
+    // Hash new password
+    const hash = await bcrypt.hash(newPassword, 10);
+    user.password = hash;
+
+    await this.usersRepository.save(user);
+    const { password, ...rest } = user as any;
+    return rest;
+  }
 }

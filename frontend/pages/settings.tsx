@@ -1,10 +1,44 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { useMutation, gql } from "@apollo/client";
 import Layout from "../components/Layout";
+
+const CHANGE_PASSWORD = gql`
+  mutation ChangePassword($input: ChangePasswordInput!) {
+    changePassword(input: $input) {
+      id
+      email
+      name
+    }
+  }
+`;
 
 export default function Settings() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [changePassword, { loading: submitting }] = useMutation(
+    CHANGE_PASSWORD,
+    {
+      onCompleted: () => {
+        setSuccess("Password changed successfully!");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setError("");
+        setTimeout(() => setSuccess(""), 5000);
+      },
+      onError: (error) => {
+        setError(error.message || "Failed to change password");
+        setSuccess("");
+      },
+    }
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -15,6 +49,41 @@ export default function Settings() {
     document.title = "Settings - TimeSheet App";
     setIsLoading(false);
   }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError("All fields are required");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError("New password must be at least 6 characters");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("New passwords do not match");
+      return;
+    }
+
+    try {
+      await changePassword({
+        variables: {
+          input: {
+            currentPassword,
+            newPassword,
+          },
+        },
+      });
+    } catch (err) {
+      // Error handled by onError callback
+    }
+  };
 
   if (isLoading) {
     return (
@@ -30,132 +99,174 @@ export default function Settings() {
   return (
     <Layout>
       <div className="p-6">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
             <p className="text-gray-600">
-              Manage your account and application preferences
+              Manage your account security settings
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Account Settings */}
-            <div className="glass-card rounded-2xl p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900 ml-3">
-                  Account Settings
-                </h2>
+          {/* Change Password Card */}
+          <div className="glass-card rounded-2xl p-8">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
               </div>
-              <p className="text-gray-600 text-sm mb-4">
-                Manage your profile and account information
-              </p>
-              <button className="btn-primary">Edit Profile</button>
+              <div className="ml-4">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Change Password
+                </h2>
+                <p className="text-gray-600 text-sm">
+                  Update your password to keep your account secure
+                </p>
+              </div>
             </div>
 
-            {/* Notification Settings */}
-            <div className="glass-card rounded-2xl p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center text-white">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 17h5l-5 5v-5zM11 21H6a2 2 0 01-2-2V7a2 2 0 012-2h5m0 16v-5a2 2 0 012-2h5V7a2 2 0 00-2-2h-5v16z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900 ml-3">
-                  Notifications
-                </h2>
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start animate-fade-in">
+                <svg
+                  className="w-5 h-5 text-red-600 mr-3 mt-0.5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-red-800 text-sm font-medium">{error}</p>
               </div>
-              <p className="text-gray-600 text-sm mb-4">
-                Configure your notification preferences
-              </p>
-              <button className="btn-primary">Manage Notifications</button>
-            </div>
+            )}
 
-            {/* Security Settings */}
-            <div className="glass-card rounded-2xl p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900 ml-3">
-                  Security
-                </h2>
+            {success && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start animate-fade-in">
+                <svg
+                  className="w-5 h-5 text-green-600 mr-3 mt-0.5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-green-800 text-sm font-medium">{success}</p>
               </div>
-              <p className="text-gray-600 text-sm mb-4">
-                Manage password and security settings
-              </p>
-              <button className="btn-primary">Change Password</button>
-            </div>
+            )}
 
-            {/* App Preferences */}
-            <div className="glass-card rounded-2xl p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-white">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900 ml-3">
-                  Preferences
-                </h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label
+                  htmlFor="currentPassword"
+                  className="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                  Current Password
+                </label>
+                <input
+                  id="currentPassword"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="input-field"
+                  placeholder="Enter your current password"
+                  disabled={submitting}
+                />
               </div>
-              <p className="text-gray-600 text-sm mb-4">
-                Customize your app experience
-              </p>
-              <button className="btn-primary">Edit Preferences</button>
-            </div>
+
+              <div>
+                <label
+                  htmlFor="newPassword"
+                  className="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                  New Password
+                </label>
+                <input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="input-field"
+                  placeholder="Enter your new password"
+                  disabled={submitting}
+                />
+                <p className="text-gray-500 text-xs mt-1">
+                  Password must be at least 6 characters
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                  Confirm New Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="input-field"
+                  placeholder="Re-enter your new password"
+                  disabled={submitting}
+                />
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary px-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Changing...
+                    </span>
+                  ) : (
+                    "Change Password"
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

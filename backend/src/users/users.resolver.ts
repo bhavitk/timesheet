@@ -3,6 +3,7 @@ import { UsersService } from './users.service';
 import { UserObject } from './dto/user.object';
 import { UpdateUserInput } from './dto/update-user.input';
 import { CreateUserInput } from './dto/create-user.input';
+import { ChangePasswordInput } from './dto/change-password.input';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Admin } from 'src/auth/admin.decorator';
@@ -96,5 +97,19 @@ export class UsersResolver {
     if (!deleted) return null;
     const { password, ...rest } = deleted as any;
     return rest;
+  }
+
+  @Mutation(() => UserObject)
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @Args('input') input: ChangePasswordInput,
+    @Context() context: any,
+  ) {
+    const userId = context.req.user.userId;
+    return this.usersService.changePassword(
+      userId,
+      input.currentPassword,
+      input.newPassword,
+    );
   }
 }
