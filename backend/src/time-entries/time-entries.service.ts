@@ -217,14 +217,28 @@ export class TimeEntriesService {
       {} as Record<string, TimeEntry[]>,
     );
 
-    // Create report data
-    return users.map((user) => ({
-      userId: user.id,
-      userEmail: user.email,
-      userFirstName: user.name?.split(' ')[0] || null,
-      userLastName: user.name?.split(' ').slice(1).join(' ') || null,
-      entries: entriesByUser[user.id] || [],
-    }));
+    // Create report data with aggregated values (counts and sums)
+    return users.map((user) => {
+      const userEntries = entriesByUser[user.id] || [];
+      const entriesCount = userEntries.length;
+
+      // Only consider 'work' entries for workDaysCount and totalWorkHours
+      const totalWorkHours = userEntries.reduce(
+        (sum, e) => sum + (Number(e.hours) || 0),
+        0,
+      );
+      const uniqueWorkDays = new Set(userEntries.map((e) => e.date)).size;
+
+      return {
+        userId: user.id,
+        userEmail: user.email,
+        userFirstName: user.name?.split(' ')[0] || null,
+        userLastName: user.name?.split(' ').slice(1).join(' ') || null,
+        entriesCount,
+        workDaysCount: uniqueWorkDays,
+        totalWorkHours,
+      };
+    });
   }
 
   async generateFullReportCsv(

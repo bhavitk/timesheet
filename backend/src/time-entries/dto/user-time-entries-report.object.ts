@@ -1,5 +1,4 @@
-import { ObjectType, Field } from '@nestjs/graphql';
-import { TimeEntryObject } from './time-entry.object';
+import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 
 @ObjectType()
 export class UserTimeEntriesReportObject {
@@ -15,6 +14,15 @@ export class UserTimeEntriesReportObject {
   @Field({ nullable: true })
   userLastName?: string;
 
-  @Field(() => [TimeEntryObject])
-  entries: TimeEntryObject[];
+  // Number of entries the user made during the requested month
+  @Field(() => Int)
+  entriesCount: number;
+
+  // Number of unique work days (dates) with entryType === 'work'
+  @Field(() => Int)
+  workDaysCount: number;
+
+  // Total hours summed for entries with entryType === 'work'
+  @Field(() => Float)
+  totalWorkHours: number;
 }

@@ -35,7 +35,9 @@ export interface UserTimeEntriesReport {
   userEmail: string;
   userFirstName?: string;
   userLastName?: string;
-  entries: TimeEntry[];
+  entriesCount: number;
+  workDaysCount: number;
+  totalWorkHours: number;
 }
 
 export interface MonthlyReportStats {

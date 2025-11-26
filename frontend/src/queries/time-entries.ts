@@ -96,15 +96,9 @@ export const GET_ALL_USERS_TIME_ENTRIES_REPORT = gql`
       userEmail
       userFirstName
       userLastName
-      entries {
-        id
-        date
-        hours
-        description
-        entryType
-        createdAt
-        updatedAt
-      }
+      entriesCount
+      workDaysCount
+      totalWorkHours
     }
   }
 `;

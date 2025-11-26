@@ -114,9 +114,11 @@ type UserObject {
 }
 
 type UserTimeEntriesReportObject {
-  entries: [TimeEntryObject!]!
+  entriesCount: Int!
+  totalWorkHours: Float!
   userEmail: String!
   userFirstName: String
   userId: String!
   userLastName: String
+  workDaysCount: Int!
 }

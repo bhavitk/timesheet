@@ -70,11 +70,7 @@ export default function Reports() {
     let usersWithCompleteEntries = 0;
 
     reports.forEach((report) => {
-      const workEntries = report.entries.filter(
-        (entry) => entry.entryType === "work"
-      );
-      const uniqueWorkDays = new Set(workEntries.map((entry) => entry.date))
-        .size;
+      const uniqueWorkDays = report.workDaysCount || 0;
 
       if (uniqueWorkDays != workingDaysInMonth) {
         usersWithMissingEntries++;
@@ -101,11 +97,7 @@ export default function Reports() {
     );
 
     return reports.filter((report) => {
-      const workEntries = report.entries.filter(
-        (entry) => entry.entryType === "work"
-      );
-      const uniqueWorkDays = new Set(workEntries.map((entry) => entry.date))
-        .size;
+      const uniqueWorkDays = report.workDaysCount || 0;
 
       switch (filterType) {
         case "missing":
@@ -181,7 +173,7 @@ export default function Reports() {
         u.userFirstName && u.userLastName
           ? `${u.userFirstName} ${u.userLastName}`
           : u.userEmail.split("@")[0];
-      const entriesCount = u.entries?.length ?? 0;
+      const entriesCount = u.entriesCount ?? 0;
       rows.push([escapeCsvField(name), escapeCsvField(entriesCount)].join(","));
     });
 
@@ -818,16 +810,8 @@ export default function Reports() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
                     {filteredUsers.map((user) => {
-                      const workEntries = user.entries.filter(
-                        (entry) => entry.entryType === "work"
-                      );
-                      const uniqueWorkDays = new Set(
-                        workEntries.map((entry) => entry.date)
-                      ).size;
-                      const totalHours = workEntries.reduce(
-                        (sum, entry) => sum + entry.hours,
-                        0
-                      );
+                      const uniqueWorkDays = user.workDaysCount || 0;
+                      const totalHours = user.totalWorkHours || 0;
                       const isComplete =
                         uniqueWorkDays == stats.workingDaysInMonth;
 
@@ -857,7 +841,7 @@ export default function Reports() {
                           </td>
                           <td className="px-6 py-6 whitespace-nowrap">
                             <div className="text-sm font-bold text-gray-900">
-                              {user.entries.length}
+                              {user.entriesCount}
                             </div>
                           </td>
                           <td className="px-6 py-6 whitespace-nowrap">
