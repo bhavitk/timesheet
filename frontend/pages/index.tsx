@@ -75,7 +75,7 @@ export default function LoginPage() {
       }
       const token = data.access_token;
       if (!token) {
-        setError("No token returned");
+        setError("Invalid credentials");
         setIsLoading(false);
         return;
       }

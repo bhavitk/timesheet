@@ -209,10 +209,10 @@ export default function Reports() {
         ? `&projectId=${selectedProjectId}`
         : "";
       const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_GRAPHQL_URL?.replace("/graphql", "") ||
-          "http://localhost:8181"
-        }/time-entries/export-csv?month=${month}&year=${year}${projectParam}`,
+        `${process.env.NEXT_PUBLIC_GRAPHQL_URL?.replace(
+          "/graphql",
+          ""
+        )}/time-entries/export-csv?month=${month}&year=${year}${projectParam}`,
         {
           headers: {
             Authorization: token ? `Bearer ${token}` : "",
@@ -748,7 +748,9 @@ export default function Reports() {
                     }
                     className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm"
                   >
-                    {exportStatus === "done" ? "Exported" : `Export entries`}
+                    {exportStatus === "done"
+                      ? "Exported"
+                      : `Export stats report`}
                   </button>
 
                   <button
@@ -762,7 +764,7 @@ export default function Reports() {
                       ? "Exporting..."
                       : fullExportStatus === "done"
                       ? "Exported!"
-                      : "Export Full Report"}
+                      : "Export full report"}
                   </button>
                 </div>
               </div>
